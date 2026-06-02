@@ -1,36 +1,32 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
-import { Loader2, Save, Plus, Trash2, Edit3, Film, Code2, MessageSquare, LogOut, Lock, User, Phone, Wrench } from 'lucide-react';
+import { Loader2, Save, Plus, Trash2, Edit3, Film, Code2, MessageSquare, LogOut, Lock, User, Phone, Wrench, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 const Admin = () => {
     const [session, setSession] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'projects' | 'media' | 'hero' | 'about' | 'contact' | 'tech'>('hero');
+    const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'projects' | 'media' | 'tech' | 'contact' | 'seo'>('hero');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [messageType, setMessageType] = useState<'success' | 'error'>('success');
 
-    // --- STATES DỮ LIỆU ĐƠN (HERO, ABOUT) ---
+    // States lưu dữ liệu
     const [heroData, setHeroData] = useState<any>({ greetings: [], typing_speed: 40, line_spacing: 2.0 });
     const [aboutData, setAboutData] = useState<any>({ title: '', description_vi: '', description_en: '', profile_image_url: '', location: '', role_title: '' });
+    const [seoData, setSeoData] = useState<any>({ title: '', description: '', keywords: '', og_image: '', site_url: '' });
 
-    // --- STATES DANH SÁCH (CRUD) ---
     const [projects, setProjects] = useState<any[]>([]);
     const [editingProject, setEditingProject] = useState<any>(null);
-    
     const [mediaItems, setMediaItems] = useState<any[]>([]);
     const [editingMedia, setEditingMedia] = useState<any>(null);
-    
     const [techs, setTechs] = useState<any[]>([]);
     const [editingTech, setEditingTech] = useState<any>(null);
-    
     const [contacts, setContacts] = useState<any[]>([]);
     const [editingContact, setEditingContact] = useState<any>(null);
 
-    // --- HIỆU ỨNG ĐĂNG NHẬP & FETCH DỮ LIỆU ---
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
@@ -54,6 +50,9 @@ const Admin = () => {
             } else if (activeTab === 'about') {
                 const { data } = await supabase.from('about_me').select('*').eq('id', 1).single();
                 if (data) setAboutData(data);
+            } else if (activeTab === 'seo') {
+                const { data } = await supabase.from('seo_settings').select('*').eq('id', 1).single();
+                if (data) setSeoData(data);
             } else if (activeTab === 'projects') {
                 const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: true });
                 setProjects(data || []);
@@ -64,14 +63,13 @@ const Admin = () => {
                 const { data } = await supabase.from('tech_stack').select('*').order('category');
                 setTechs(data || []);
             } else if (activeTab === 'contact') {
-                const { data } = await supabase.from('social_links').select('*').order('created_at');
+                const { data } = await supabase.from('social_links').select('*').order('created_at', { ascending: true });
                 setContacts(data || []);
             }
-        } catch (e) { console.error(e); } finally { setLoading(false); }
+        } catch (e) { showMsg('Lỗi tải dữ liệu!', 'error'); } finally { setLoading(false); }
     };
 
-    // --- HÀM TẢI ẢNH CHUNG ---
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'media' | 'about') => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'media' | 'about' | 'seo') => {
         const file = e.target.files?.[0];
         if (!file) return;
         setLoading(true); showMsg('Đang tải ảnh...', 'success');
@@ -81,17 +79,18 @@ const Admin = () => {
         else {
             const { data } = supabase.storage.from('media_images').getPublicUrl(fileName);
             if (type === 'media') setEditingMedia({ ...editingMedia, thumbnail_url: data.publicUrl });
-            else setAboutData({ ...aboutData, profile_image_url: data.publicUrl });
+            else if (type === 'about') setAboutData({ ...aboutData, profile_image_url: data.publicUrl });
+            else if (type === 'seo') setSeoData({ ...seoData, og_image: data.publicUrl });
             showMsg('Tải ảnh thành công!');
         }
         setLoading(false);
     };
 
-    // --- CÁC HÀM LƯU DỮ LIỆU ĐƠN ---
-    const handleSaveHero = async () => { setLoading(true); await supabase.from('hero_settings').update(heroData).eq('id', 1); showMsg('Đã lưu Lời chào!'); setLoading(false); };
-    const handleSaveAbout = async () => { setLoading(true); await supabase.from('about_me').update(aboutData).eq('id', 1); showMsg('Đã lưu Cá nhân!'); setLoading(false); };
+    // ĐÂY LÀ PHẦN KHAI BÁO CÁC HÀM LƯU BỊ THIẾU
+    const handleSaveHero = async () => { setLoading(true); await supabase.from('hero_settings').update(heroData).eq('id', 1); showMsg('Đã lưu!'); setLoading(false); };
+    const handleSaveAbout = async () => { setLoading(true); await supabase.from('about_me').update(aboutData).eq('id', 1); showMsg('Đã lưu!'); setLoading(false); };
+    const handleSaveSeo = async () => { setLoading(true); await supabase.from('seo_settings').update(seoData).eq('id', 1); showMsg('Đã lưu SEO!'); setLoading(false); };
 
-    // --- CÁC HÀM LƯU DANH SÁCH (CRUD) ---
     const saveListItem = async (table: string, itemData: any, setEditingState: any) => {
         setLoading(true);
         if (itemData.id) await supabase.from(table).update(itemData).eq('id', itemData.id);
@@ -107,13 +106,12 @@ const Admin = () => {
     
     const handleSaveMedia = (e: React.FormEvent) => { e.preventDefault(); saveListItem('media_items', editingMedia, setEditingMedia); };
     const handleSaveTech = (e: React.FormEvent) => { e.preventDefault(); saveListItem('tech_stack', editingTech, setEditingTech); };
+    
+    // HÀM QUAN TRỌNG: Lưu liên hệ mạng xã hội
     const handleSaveContact = (e: React.FormEvent) => { e.preventDefault(); saveListItem('social_links', editingContact, setEditingContact); };
 
-    // Hàm Xóa chung
     const deleteItem = async (table: string, id: string) => { 
-        if(window.confirm('Bạn có chắc muốn xóa mục này?')) { 
-            await supabase.from(table).delete().eq('id', id); fetchData(); showMsg('Đã xóa thành công!');
-        } 
+        if(window.confirm('Xóa mục này?')) { await supabase.from(table).delete().eq('id', id); fetchData(); showMsg('Đã xóa!'); } 
     };
 
     if (!session) return <LoginForm />;
@@ -121,24 +119,13 @@ const Admin = () => {
     return (
         <div className="min-h-screen bg-[#0a0a0a] text-gray-300 font-mono p-4 md:p-8">
             <div className="max-w-6xl mx-auto">
-                {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 bg-[#111] p-6 rounded-lg border border-gray-800">
-                    <div>
-                        <h1 className="text-2xl font-bold text-cyan-400 flex items-center gap-2"><Lock className="w-6 h-6" /> ADMIN DASHBOARD</h1>
-                        <p className="text-xs text-gray-500 mt-1">Logged in as: {session.user.email}</p>
-                    </div>
+                    <div><h1 className="text-2xl font-bold text-cyan-400 flex items-center gap-2"><Lock className="w-6 h-6" /> ADMIN DASHBOARD</h1><p className="text-xs text-gray-500">{session.user.email}</p></div>
                     <Button variant="destructive" onClick={() => supabase.auth.signOut()}><LogOut className="w-4 h-4 mr-2" /> Đăng xuất</Button>
                 </div>
 
-                <div className="h-[68px] mb-4">
-                    {message && (
-                        <div className={`p-4 rounded border flex justify-between ${messageType === 'error' ? 'bg-red-950/40 border-red-500 text-red-400' : 'bg-cyan-950/40 border-cyan-500 text-cyan-400'}`}>
-                            {message} <button onClick={() => setMessage('')}>✕</button>
-                        </div>
-                    )}
-                </div>
+                {message && <div className={`p-4 mb-4 rounded border ${messageType === 'error' ? 'bg-red-950/40 border-red-500 text-red-400' : 'bg-cyan-950/40 border-cyan-500 text-cyan-400'}`}>{message}</div>}
 
-                {/* Tabs */}
                 <div className="flex gap-2 mb-6 overflow-x-auto border-b border-gray-800 pb-2">
                     <TabButton active={activeTab === 'hero'} onClick={() => setActiveTab('hero')} icon={<MessageSquare className="w-4 h-4"/>} label="Lời chào" />
                     <TabButton active={activeTab === 'about'} onClick={() => setActiveTab('about')} icon={<User className="w-4 h-4"/>} label="Cá nhân" />
@@ -146,58 +133,50 @@ const Admin = () => {
                     <TabButton active={activeTab === 'media'} onClick={() => setActiveTab('media')} icon={<Film className="w-4 h-4"/>} label="Media" />
                     <TabButton active={activeTab === 'tech'} onClick={() => setActiveTab('tech')} icon={<Wrench className="w-4 h-4"/>} label="Tech" />
                     <TabButton active={activeTab === 'contact'} onClick={() => setActiveTab('contact')} icon={<Phone className="w-4 h-4"/>} label="Liên hệ" />
+                    <TabButton active={activeTab === 'seo'} onClick={() => setActiveTab('seo')} icon={<Globe className="w-4 h-4"/>} label="SEO" />
                 </div>
 
-                {/* Content Area */}
                 <div className="bg-[#111] border border-gray-800 rounded-lg p-6 min-h-[500px]">
-                    
-                    {/* TAB LỜI CHÀO */}
+                    {/* TAB HERO */}
                     {activeTab === 'hero' && (
-                        <div className="space-y-6 max-w-2xl">
-                            <h3 className="text-xl text-cyan-400 mb-4"># Cấu hình Hero</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-sm text-gray-500">Tốc độ gõ (ms)</label><Input type="number" value={heroData.typing_speed} onChange={e => setHeroData({...heroData, typing_speed: parseInt(e.target.value)})} className="bg-[#1a1a1a]" /></div>
-                                <div><label className="text-sm text-gray-500">Độ giãn dòng</label><Input type="number" step="0.1" value={heroData.line_spacing} onChange={e => setHeroData({...heroData, line_spacing: parseFloat(e.target.value)})} className="bg-[#1a1a1a]" /></div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm text-gray-500">Nội dung Lời chào</label>
-                                {heroData.greetings?.map((text: string, idx: number) => (
-                                    <Input key={idx} value={text} onChange={(e) => { const newG = [...heroData.greetings]; newG[idx] = e.target.value; setHeroData({...heroData, greetings: newG}); }} className="bg-[#1a1a1a]" />
-                                ))}
-                            </div>
-                            <Button onClick={handleSaveHero} disabled={loading} className="bg-cyan-600">Lưu thay đổi</Button>
+                        <div className="space-y-4 max-w-2xl">
+                            <Input type="number" value={heroData.typing_speed} onChange={e => setHeroData({...heroData, typing_speed: parseInt(e.target.value)})} className="bg-[#1a1a1a]" placeholder="Tốc độ gõ" />
+                            <Input type="number" step="0.1" value={heroData.line_spacing} onChange={e => setHeroData({...heroData, line_spacing: parseFloat(e.target.value)})} className="bg-[#1a1a1a]" placeholder="Giãn dòng" />
+                            {heroData.greetings?.map((text: string, idx: number) => (
+                                <Input key={idx} value={text} onChange={(e) => { const newG = [...heroData.greetings]; newG[idx] = e.target.value; setHeroData({...heroData, greetings: newG}); }} className="bg-[#1a1a1a]" />
+                            ))}
+                            <Button onClick={handleSaveHero} className="bg-cyan-600">Lưu</Button>
                         </div>
                     )}
 
-                    {/* TAB CÁ NHÂN */}
+                    {/* TAB ABOUT ME */}
                     {activeTab === 'about' && (
                         <div className="space-y-4 max-w-3xl">
-                            <h3 className="text-xl text-cyan-400 mb-4"># Giới thiệu bản thân</h3>
-                            <div className="flex gap-4 mb-4 items-center">
-                                <img src={aboutData.profile_image_url || '/placeholder.png'} className="w-20 h-20 rounded-full object-cover border-2 border-cyan-500" alt="Avatar"/>
-                                <div className="relative"><Button variant="outline" className="bg-[#1a1a1a]">Tải ảnh lên</Button><input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'about')} className="absolute inset-0 opacity-0 cursor-pointer" /></div>
+                            <div className="flex gap-4 items-center">
+                                <img src={aboutData.profile_image_url || '/placeholder.png'} className="w-20 h-20 rounded-full object-cover border border-cyan-500"/>
+                                <div className="relative"><Button variant="outline" className="bg-[#1a1a1a]">Đổi ảnh</Button><input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'about')} className="absolute inset-0 opacity-0 cursor-pointer" /></div>
                             </div>
-                            <div><label className="text-xs text-gray-500">Tiêu đề</label><Input value={aboutData.title || ''} onChange={e => setAboutData({...aboutData, title: e.target.value})} className="bg-[#1a1a1a]" /></div>
-                            <div><label className="text-xs text-gray-500">Tiếng Việt</label><Textarea value={aboutData.description_vi || ''} onChange={e => setAboutData({...aboutData, description_vi: e.target.value})} className="bg-[#1a1a1a]" rows={3} /></div>
-                            <div><label className="text-xs text-gray-500">Tiếng Anh</label><Textarea value={aboutData.description_en || ''} onChange={e => setAboutData({...aboutData, description_en: e.target.value})} className="bg-[#1a1a1a]" rows={3} /></div>
+                            <Input value={aboutData.title || ''} onChange={e => setAboutData({...aboutData, title: e.target.value})} className="bg-[#1a1a1a]" placeholder="Tiêu đề" />
+                            <Textarea value={aboutData.description_vi || ''} onChange={e => setAboutData({...aboutData, description_vi: e.target.value})} className="bg-[#1a1a1a]" rows={3} placeholder="Mô tả VN" />
+                            <Textarea value={aboutData.description_en || ''} onChange={e => setAboutData({...aboutData, description_en: e.target.value})} className="bg-[#1a1a1a]" rows={3} placeholder="Mô tả EN" />
                             <div className="grid grid-cols-2 gap-4">
-                                <div><label className="text-xs text-gray-500">Chức danh</label><Input value={aboutData.role_title || ''} onChange={e => setAboutData({...aboutData, role_title: e.target.value})} className="bg-[#1a1a1a]" /></div>
-                                <div><label className="text-xs text-gray-500">Địa điểm</label><Input value={aboutData.location || ''} onChange={e => setAboutData({...aboutData, location: e.target.value})} className="bg-[#1a1a1a]" /></div>
+                                <Input value={aboutData.role_title || ''} onChange={e => setAboutData({...aboutData, role_title: e.target.value})} className="bg-[#1a1a1a]" placeholder="Chức danh" />
+                                <Input value={aboutData.location || ''} onChange={e => setAboutData({...aboutData, location: e.target.value})} className="bg-[#1a1a1a]" placeholder="Địa điểm" />
                             </div>
-                            <Button onClick={handleSaveAbout} disabled={loading} className="bg-cyan-600 mt-2">Lưu Thông Tin</Button>
+                            <Button onClick={handleSaveAbout} className="bg-cyan-600">Lưu</Button>
                         </div>
                     )}
 
-                    {/* TAB DỰ ÁN */}
+                    {/* TAB PROJECTS */}
                     {activeTab === 'projects' && (
                         <div>
                             {!editingProject ? (
                                 <div className="space-y-4">
-                                    <Button onClick={() => setEditingProject({ name: '', description_vi: '', description_en: '', technologies: '', github_url: '', demo_url: '', demo_label: 'Watch Video' })} className="bg-green-600"><Plus className="w-4 h-4 mr-2" /> Thêm Dự án</Button>
+                                    <Button onClick={() => setEditingProject({ name: '', description_vi: '', description_en: '', technologies: '', github_url: '', demo_url: '', demo_label: 'Watch Video' })} className="bg-green-600"><Plus className="w-4 h-4 mr-2" /> Thêm</Button>
                                     <div className="grid gap-3">
                                         {projects.map(p => (
                                             <div key={p.id} className="p-4 bg-[#1a1a1a] rounded flex justify-between items-center border border-gray-800">
-                                                <div><p className="font-bold text-white">{p.name}</p><p className="text-xs text-gray-500">{p.technologies?.join(', ')}</p></div>
+                                                <div><p className="font-bold text-white">{p.name}</p><p className="text-xs text-gray-500">{Array.isArray(p.technologies) ? p.technologies.join(', ') : p.technologies}</p></div>
                                                 <div className="flex gap-2"><Button size="icon" variant="ghost" onClick={() => setEditingProject(p)}><Edit3 className="w-4 h-4"/></Button><Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteItem('projects', p.id)}><Trash2 className="w-4 h-4"/></Button></div>
                                             </div>
                                         ))}
@@ -205,14 +184,14 @@ const Admin = () => {
                                 </div>
                             ) : (
                                 <form onSubmit={handleSaveProject} className="space-y-3 max-w-2xl">
-                                    <h3 className="text-xl text-green-400 mb-4">{editingProject.id ? 'Sửa dự án' : 'Thêm dự án mới'}</h3>
-                                    <Input placeholder="Tên dự án" value={editingProject.name || ''} onChange={e => setEditingProject({...editingProject, name: e.target.value})} className="bg-[#1a1a1a]" required/>
-                                    <Textarea placeholder="Mô tả Tiếng Việt" value={editingProject.description_vi || ''} onChange={e => setEditingProject({...editingProject, description_vi: e.target.value})} className="bg-[#1a1a1a]" />
-                                    <Textarea placeholder="Mô tả Tiếng Anh" value={editingProject.description_en || ''} onChange={e => setEditingProject({...editingProject, description_en: e.target.value})} className="bg-[#1a1a1a]" />
-                                    <Input placeholder="Công nghệ (VD: React, Node.js)" value={editingProject.technologies || ''} onChange={e => setEditingProject({...editingProject, technologies: e.target.value})} className="bg-[#1a1a1a]" />
+                                    <Input placeholder="Tên" value={editingProject.name || ''} onChange={e => setEditingProject({...editingProject, name: e.target.value})} className="bg-[#1a1a1a]" required/>
+                                    <Textarea placeholder="Mô tả VN" value={editingProject.description_vi || ''} onChange={e => setEditingProject({...editingProject, description_vi: e.target.value})} className="bg-[#1a1a1a]" />
+                                    <Textarea placeholder="Mô tả EN" value={editingProject.description_en || ''} onChange={e => setEditingProject({...editingProject, description_en: e.target.value})} className="bg-[#1a1a1a]" />
+                                    <Input placeholder="Công nghệ" value={editingProject.technologies || ''} onChange={e => setEditingProject({...editingProject, technologies: e.target.value})} className="bg-[#1a1a1a]" />
                                     <Input placeholder="Link GitHub" value={editingProject.github_url || ''} onChange={e => setEditingProject({...editingProject, github_url: e.target.value})} className="bg-[#1a1a1a]" />
-                                    <Input placeholder="Link Demo/Video" value={editingProject.demo_url || ''} onChange={e => setEditingProject({...editingProject, demo_url: e.target.value})} className="bg-[#1a1a1a]" />
-                                    <div className="flex gap-2 mt-4"><Button type="submit" disabled={loading} className="bg-green-600">Lưu</Button><Button type="button" variant="outline" onClick={() => setEditingProject(null)}>Hủy</Button></div>
+                                    <Input placeholder="Link Demo" value={editingProject.demo_url || ''} onChange={e => setEditingProject({...editingProject, demo_url: e.target.value})} className="bg-[#1a1a1a]" />
+                                    <Input placeholder="Nhãn nút" value={editingProject.demo_label || ''} onChange={e => setEditingProject({...editingProject, demo_label: e.target.value})} className="bg-[#1a1a1a]" />
+                                    <div className="flex gap-2"><Button type="submit" className="bg-green-600">Lưu</Button><Button type="button" variant="outline" onClick={() => setEditingProject(null)}>Hủy</Button></div>
                                 </form>
                             )}
                         </div>
@@ -223,7 +202,7 @@ const Admin = () => {
                         <div>
                             {!editingMedia ? (
                                 <div className="space-y-4">
-                                    <Button onClick={() => setEditingMedia({ title: '', category: '', description: '', thumbnail_url: '', video_url: '', icon_name: 'Film' })} className="bg-pink-600"><Plus className="w-4 h-4 mr-2" /> Thêm Media</Button>
+                                    <Button onClick={() => setEditingMedia({ title: '', category: '', description: '', thumbnail_url: '', video_url: '', icon_name: 'Film' })} className="bg-pink-600"><Plus className="w-4 h-4 mr-2" /> Thêm</Button>
                                     <div className="grid gap-3">
                                         {mediaItems.map(m => (
                                             <div key={m.id} className="p-4 bg-[#1a1a1a] rounded flex justify-between items-center border border-gray-800">
@@ -235,81 +214,87 @@ const Admin = () => {
                                 </div>
                             ) : (
                                 <form onSubmit={handleSaveMedia} className="space-y-3 max-w-2xl">
-                                    <h3 className="text-xl text-pink-400 mb-4">{editingMedia.id ? 'Sửa Media' : 'Thêm Media mới'}</h3>
                                     <Input placeholder="Tiêu đề" value={editingMedia.title || ''} onChange={e => setEditingMedia({...editingMedia, title: e.target.value})} className="bg-[#1a1a1a]" required/>
                                     <Input placeholder="Thể loại" value={editingMedia.category || ''} onChange={e => setEditingMedia({...editingMedia, category: e.target.value})} className="bg-[#1a1a1a]" />
                                     <Textarea placeholder="Mô tả" value={editingMedia.description || ''} onChange={e => setEditingMedia({...editingMedia, description: e.target.value})} className="bg-[#1a1a1a]" />
                                     <div className="flex gap-2 items-center">
-                                        <Input placeholder="Link Thumbnail" value={editingMedia.thumbnail_url || ''} onChange={e => setEditingMedia({...editingMedia, thumbnail_url: e.target.value})} className="bg-[#1a1a1a] flex-1" />
+                                        <Input placeholder="Link ảnh" value={editingMedia.thumbnail_url || ''} onChange={e => setEditingMedia({...editingMedia, thumbnail_url: e.target.value})} className="bg-[#1a1a1a] flex-1" />
                                         <div className="relative"><Button type="button" variant="outline" className="bg-[#1a1a1a]">Tải ảnh</Button><input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'media')} className="absolute inset-0 opacity-0 cursor-pointer" /></div>
                                     </div>
-                                    <Input placeholder="Link Video (Youtube/TikTok)" value={editingMedia.video_url || ''} onChange={e => setEditingMedia({...editingMedia, video_url: e.target.value})} className="bg-[#1a1a1a]" />
-                                    <div className="flex gap-2 mt-4"><Button type="submit" disabled={loading} className="bg-pink-600">Lưu</Button><Button type="button" variant="outline" onClick={() => setEditingMedia(null)}>Hủy</Button></div>
+                                    <Input placeholder="Link Video" value={editingMedia.video_url || ''} onChange={e => setEditingMedia({...editingMedia, video_url: e.target.value})} className="bg-[#1a1a1a]" />
+                                    <div className="flex gap-2"><Button type="submit" className="bg-pink-600">Lưu</Button><Button type="button" variant="outline" onClick={() => setEditingMedia(null)}>Hủy</Button></div>
                                 </form>
                             )}
                         </div>
                     )}
 
-                    {/* TAB TECH STACK */}
+                    {/* TAB TECH */}
                     {activeTab === 'tech' && (
                         <div>
                             {!editingTech ? (
                                 <div className="space-y-4">
-                                    <Button onClick={() => setEditingTech({ name: '', category: 'Dev', icon_name: 'Code' })} className="bg-purple-600"><Plus className="w-4 h-4 mr-2" /> Thêm Công Nghệ</Button>
+                                    <Button onClick={() => setEditingTech({ name: '', category: 'Dev' })} className="bg-purple-600"><Plus className="w-4 h-4 mr-2" /> Thêm Tech</Button>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                         {techs.map(t => (
                                             <div key={t.id} className="p-4 bg-[#1a1a1a] border border-gray-800 rounded flex justify-between items-center">
                                                 <div><p className="font-bold text-white">{t.name}</p><p className="text-xs text-gray-500">{t.category}</p></div>
-                                                <div className="flex gap-2">
-                                                    <Button size="icon" variant="ghost" onClick={() => setEditingTech(t)}><Edit3 className="w-4 h-4"/></Button>
-                                                    <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteItem('tech_stack', t.id)}><Trash2 className="w-4 h-4"/></Button>
-                                                </div>
+                                                <div className="flex gap-2"><Button size="icon" variant="ghost" onClick={() => setEditingTech(t)}><Edit3 className="w-4 h-4"/></Button><Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteItem('tech_stack', t.id)}><Trash2 className="w-4 h-4"/></Button></div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             ) : (
                                 <form onSubmit={handleSaveTech} className="space-y-3 max-w-sm">
-                                    <h3 className="text-xl text-purple-400 mb-4">{editingTech.id ? 'Sửa Tech' : 'Thêm Tech mới'}</h3>
-                                    <div><label className="text-xs text-gray-500">Tên (VD: React, Figma)</label><Input value={editingTech.name || ''} onChange={e => setEditingTech({...editingTech, name: e.target.value})} className="bg-[#1a1a1a]" required/></div>
-                                    <div><label className="text-xs text-gray-500">Nhóm (Dev / Media / Tools)</label><Input value={editingTech.category || ''} onChange={e => setEditingTech({...editingTech, category: e.target.value})} className="bg-[#1a1a1a]" /></div>
-                                    <div className="flex gap-2 mt-4"><Button type="submit" disabled={loading} className="bg-purple-600">Lưu</Button><Button type="button" variant="outline" onClick={() => setEditingTech(null)}>Hủy</Button></div>
+                                    <Input value={editingTech.name || ''} onChange={e => setEditingTech({...editingTech, name: e.target.value})} className="bg-[#1a1a1a]" placeholder="Tên" required/>
+                                    <Input value={editingTech.category || ''} onChange={e => setEditingTech({...editingTech, category: e.target.value})} className="bg-[#1a1a1a]" placeholder="Nhóm" required/>
+                                    <div className="flex gap-2"><Button type="submit" className="bg-purple-600">Lưu</Button><Button type="button" variant="outline" onClick={() => setEditingTech(null)}>Hủy</Button></div>
                                 </form>
                             )}
                         </div>
                     )}
 
-                    {/* TAB CONTACT (LIÊN HỆ ĐỘNG) */}
+                    {/* TAB CONTACT */}
                     {activeTab === 'contact' && (
                         <div>
                             {!editingContact ? (
                                 <div className="space-y-4">
-                                    <Button onClick={() => setEditingContact({ platform: '', display_text: '', url: '', icon_name: 'Link' })} className="bg-blue-600"><Plus className="w-4 h-4 mr-2" /> Thêm Liên Hệ Mạng Xã Hội</Button>
+                                    <Button onClick={() => setEditingContact({ platform: '', display_text: '', url: '', icon_name: 'Link' })} className="bg-blue-600"><Plus className="w-4 h-4 mr-2" /> Thêm</Button>
                                     <div className="grid md:grid-cols-2 gap-4">
                                         {contacts.map(c => (
                                             <div key={c.id} className="p-4 bg-[#1a1a1a] border border-gray-800 rounded flex justify-between items-center">
-                                                <div className="overflow-hidden pr-4">
-                                                    <p className="font-bold text-white text-sm">{c.platform} • {c.display_text}</p>
-                                                    <p className="text-xs text-gray-500 truncate">{c.url}</p>
-                                                </div>
-                                                <div className="flex gap-2 shrink-0">
-                                                    <Button size="icon" variant="ghost" onClick={() => setEditingContact(c)}><Edit3 className="w-4 h-4"/></Button>
-                                                    <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteItem('social_links', c.id)}><Trash2 className="w-4 h-4"/></Button>
-                                                </div>
+                                                <div className="overflow-hidden pr-4"><p className="font-bold text-white text-sm">{c.platform} • {c.display_text}</p><p className="text-xs text-gray-500 truncate">{c.url}</p></div>
+                                                <div className="flex gap-2 shrink-0"><Button size="icon" variant="ghost" onClick={() => setEditingContact(c)}><Edit3 className="w-4 h-4"/></Button><Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteItem('social_links', c.id)}><Trash2 className="w-4 h-4"/></Button></div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             ) : (
                                 <form onSubmit={handleSaveContact} className="space-y-3 max-w-lg">
-                                    <h3 className="text-xl text-blue-400 mb-4">{editingContact.id ? 'Sửa Liên Hệ' : 'Thêm Liên Hệ mới'}</h3>
-                                    <div><label className="text-xs text-gray-500">Nền tảng (VD: Facebook, Email)</label><Input value={editingContact.platform || ''} onChange={e => setEditingContact({...editingContact, platform: e.target.value})} className="bg-[#1a1a1a]" required/></div>
-                                    <div><label className="text-xs text-gray-500">Chữ hiển thị (VD: hoangcm7a, Huy Hoàng)</label><Input value={editingContact.display_text || ''} onChange={e => setEditingContact({...editingContact, display_text: e.target.value})} className="bg-[#1a1a1a]" required/></div>
-                                    <div><label className="text-xs text-gray-500">Link URL hoặc Mailto:</label><Input value={editingContact.url || ''} onChange={e => setEditingContact({...editingContact, url: e.target.value})} className="bg-[#1a1a1a]" required/></div>
-                                    <div><label className="text-xs text-gray-500">Tên Icon (Facebook, Github, Tiktok, Instagram, Youtube, Subtitles, Mail)</label><Input value={editingContact.icon_name || ''} onChange={e => setEditingContact({...editingContact, icon_name: e.target.value})} className="bg-[#1a1a1a]" /></div>
-                                    <div className="flex gap-2 mt-4"><Button type="submit" disabled={loading} className="bg-blue-600">Lưu</Button><Button type="button" variant="outline" onClick={() => setEditingContact(null)}>Hủy</Button></div>
+                                    <Input value={editingContact.platform || ''} onChange={e => setEditingContact({...editingContact, platform: e.target.value})} className="bg-[#1a1a1a]" placeholder="Tên nền tảng" required/>
+                                    <Input value={editingContact.display_text || ''} onChange={e => setEditingContact({...editingContact, display_text: e.target.value})} className="bg-[#1a1a1a]" placeholder="Chữ hiển thị" required/>
+                                    <Input value={editingContact.url || ''} onChange={e => setEditingContact({...editingContact, url: e.target.value})} className="bg-[#1a1a1a]" placeholder="URL đích" required/>
+                                    <Input value={editingContact.icon_name || ''} onChange={e => setEditingContact({...editingContact, icon_name: e.target.value})} className="bg-[#1a1a1a]" placeholder="Tên Icon" />
+                                    <div className="flex gap-2"><Button type="submit" className="bg-blue-600">Lưu</Button><Button type="button" variant="outline" onClick={() => setEditingContact(null)}>Hủy</Button></div>
                                 </form>
                             )}
+                        </div>
+                    )}
+
+                    {/* TAB SEO */}
+                    {activeTab === 'seo' && (
+                        <div className="space-y-4 max-w-3xl">
+                            <Input value={seoData.title || ''} onChange={e => setSeoData({...seoData, title: e.target.value})} className="bg-[#1a1a1a]" placeholder="Meta Title" />
+                            <Textarea value={seoData.description || ''} onChange={e => setSeoData({...seoData, description: e.target.value})} className="bg-[#1a1a1a]" rows={3} placeholder="Meta Description" />
+                            <Input value={seoData.keywords || ''} onChange={e => setSeoData({...seoData, keywords: e.target.value})} className="bg-[#1a1a1a]" placeholder="Keywords (cách nhau bằng dấu phẩy)" />
+                            <Input value={seoData.site_url || ''} onChange={e => setSeoData({...seoData, site_url: e.target.value})} className="bg-[#1a1a1a]" placeholder="Site URL (https://...)" />
+                            <div className="space-y-2">
+                                {seoData.og_image && <img src={seoData.og_image} className="w-64 h-36 object-cover rounded border border-gray-700"/>}
+                                <div className="flex gap-2 items-center">
+                                    <Input value={seoData.og_image || ''} onChange={e => setSeoData({...seoData, og_image: e.target.value})} className="bg-[#1a1a1a] flex-1" placeholder="Link ảnh Open Graph" />
+                                    <div className="relative"><Button type="button" variant="outline" className="bg-[#1a1a1a]">Tải ảnh</Button><input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, 'seo')} className="absolute inset-0 opacity-0 cursor-pointer" /></div>
+                                </div>
+                            </div>
+                            <Button onClick={handleSaveSeo} className="bg-amber-600"><Save className="w-4 h-4 mr-2"/>Cập nhật SEO</Button>
                         </div>
                     )}
                 </div>
@@ -318,41 +303,25 @@ const Admin = () => {
     );
 };
 
-// Component UI Phụ
 const TabButton = ({ active, onClick, icon, label }: any) => (
-    <button onClick={onClick} className={`flex items-center gap-2 px-6 py-3 rounded-t-lg transition-colors whitespace-nowrap ${active ? 'bg-[#111] border-t border-x border-gray-800 text-cyan-400' : 'text-gray-500 hover:text-gray-300'}`}>
-        {icon} {label}
-    </button>
+    <button onClick={onClick} className={`flex items-center gap-2 px-4 py-3 rounded-t-lg transition-colors whitespace-nowrap text-sm ${active ? 'bg-[#111] border-t border-x border-gray-800 text-cyan-400 font-bold' : 'text-gray-500 hover:text-gray-300'}`}>{icon} {label}</button>
 );
 
 const LoginForm = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) setError('Sai email hoặc mật khẩu!');
-        setLoading(false);
+        await supabase.auth.signInWithPassword({ email, password });
     };
-
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] p-4">
-            <div className="w-full max-w-md p-8 bg-[#111] border border-gray-800 rounded-lg shadow-2xl space-y-6">
-                <div className="text-center">
-                    <div className="inline-block p-3 bg-cyan-500/10 rounded-full mb-4"><Code2 className="w-8 h-8 text-cyan-400" /></div>
-                    <h2 className="text-2xl font-bold text-white font-mono tracking-widest">SYSTEM ACCESS</h2>
-                </div>
-                {error && <p className="bg-red-500/10 text-red-500 p-3 rounded text-sm text-center border border-red-500/50">{error}</p>}
-                <form onSubmit={handleLogin} className="space-y-4">
-                    <Input type="email" placeholder="Email" onChange={e => setEmail(e.target.value)} className="bg-[#1a1a1a] text-white" />
-                    <Input type="password" placeholder="Mật khẩu" onChange={e => setPassword(e.target.value)} className="bg-[#1a1a1a] text-white" />
-                    <Button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 py-6">{loading ? <Loader2 className="animate-spin" /> : 'XÁC NHẬN'}</Button>
-                </form>
-            </div>
+            <form onSubmit={handleLogin} className="w-full max-w-sm p-8 bg-[#111] border border-gray-800 rounded-lg space-y-4">
+                <h2 className="text-center font-bold text-cyan-400 mb-4">SYSTEM LOGIN</h2>
+                <Input type="email" placeholder="Email" onChange={e => setEmail(e.target.value)} className="bg-[#1a1a1a]" required/>
+                <Input type="password" placeholder="Password" onChange={e => setPassword(e.target.value)} className="bg-[#1a1a1a]" required/>
+                <Button type="submit" className="w-full bg-cyan-600">ĐĂNG NHẬP</Button>
+            </form>
         </div>
     );
 };

@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import emailjs from '@emailjs/browser';
 import { supabase } from '../supabase';
+import { useLanguage } from '../context/LanguageContext';
 
 // --- CẤU HÌNH EMAILJS ---
 const SERVICE_ID = 'YOUR_SERVICE_ID';
@@ -31,6 +32,7 @@ const DynamicIcon = ({ name }: { name: string }) => {
 };
 
 const ContactSection = () => {
+  const { language } = useLanguage();
   const formRef = useRef<HTMLFormElement>(null);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
@@ -112,20 +114,21 @@ const ContactSection = () => {
     <section id="contact" className="min-h-screen py-20 bg-terminal-bg relative">
       <div className="container mx-auto px-6">
         <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-2 font-mono text-foreground">{'KẾT NỐI VỚI TÔI'}</h2>
-            <h3 className="text-xl font-mono text-muted-foreground opacity-80">{'CONNECT WITH ME'}</h3>
+            <h2 className="text-4xl font-bold mb-2 font-mono text-foreground">
+              {language === 'vi' ? 'KẾT NỐI VỚI TÔI' : 'CONNECT WITH ME'}
+            </h2>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-12 max-w-6xl mx-auto">
           {/* Contact Form */}
           <div className="bg-card border border-border rounded-lg p-8">
-            <div className="mb-6"><h3 className="text-xl font-bold font-mono code-accent">Gửi tin nhắn</h3><p className="text-sm text-muted-foreground italic">Send a Message</p></div>
+            <div className="mb-6"><h3 className="text-xl font-bold font-mono code-accent">{language === 'vi' ? 'Gửi tin nhắn' : 'Send a Message'}</h3></div>
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
               <div><label className="text-sm font-mono text-muted-foreground mb-1 block">Tên / Name</label><Input type="text" name="user_name" value={formData.user_name} onChange={handleInputChange} required className="bg-muted border-border font-mono text-foreground" /></div>
               <div><label className="text-sm font-mono text-muted-foreground mb-1 block">Email</label><Input type="email" name="user_email" value={formData.user_email} onChange={handleInputChange} required className="bg-muted border-border font-mono text-foreground" /></div>
               <div><label className="text-sm font-mono text-muted-foreground mb-1 block">Tin nhắn / Message</label><Textarea name="message" value={formData.message} onChange={handleInputChange} required rows={6} className="bg-muted border-border font-mono resize-none text-foreground" /></div>
               <Button type="submit" className="w-full gap-2 font-mono bg-primary hover:bg-primary/90" disabled={isSubmitting}>
-                {isSubmitting ? <>Đang gửi...</> : <><Send className="w-4 h-4" /> Gửi Tin Nhắn</>}
+                {isSubmitting ? <>Đang gửi...</> : <><Send className="w-4 h-4" /> {language === 'vi' ? 'Gửi tin nhắn' : 'Send a Message'}</>}
               </Button>
             </form>
           </div>
@@ -133,7 +136,7 @@ const ContactSection = () => {
           {/* Contact Info & Social Links */}
           <div className="space-y-8">
             <div className="bg-card border border-border rounded-lg p-8">
-              <div className="mb-4"><h3 className="text-xl font-bold font-mono code-accent">Liên hệ trực tiếp</h3><p className="text-sm text-muted-foreground italic">Direct Contact</p></div>
+              <div className="mb-4"><h3 className="text-xl font-bold font-mono code-accent">{language === 'vi' ? 'Liên hệ trực tiếp' : 'Direct Contact'}</h3></div>
               <div className="flex items-center gap-3 bg-muted p-4 rounded-lg">
                 <Mail className="w-5 h-5 text-primary" />
                 <code className="flex-1 font-mono text-sm text-foreground">{displayEmail}</code>
@@ -144,7 +147,7 @@ const ContactSection = () => {
             </div>
 
             <div className="bg-card border border-border rounded-lg p-8">
-              <div className="mb-4"><h3 className="text-xl font-bold font-mono media-accent">Mạng xã hội</h3><p className="text-sm text-muted-foreground italic">Social Protocols</p></div>
+              <div className="mb-4"><h3 className="text-xl font-bold font-mono media-accent">{language === 'vi' ? 'Mạng xã hội' : 'Social Media'}</h3><p className="text-sm text-muted-foreground italic">{language === 'vi' ? 'Các giao thức xã hội' : 'Social Protocols'}</p></div>
               <div className="space-y-3">
                 {/* RENDER DYNAMIC MẢNG SOCIAL LINKS */}
                 {contacts.filter(c => c.platform.toLowerCase() !== 'email').map(contact => (

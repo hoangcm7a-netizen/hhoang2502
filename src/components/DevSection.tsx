@@ -2,17 +2,9 @@ import { useState, useEffect } from 'react';
 import { Code2, Folder, FileCode, Github, ExternalLink, Globe, PlayCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '../supabase';
+import { useLanguage } from '../context/LanguageContext';
 
-interface Project {
-  id: string;
-  name: string;
-  description_vi: string; 
-  description_en: string;
-  technologies: string[];
-  github_url: string;
-  demo_url: string;
-  demo_label: string;
-}
+interface Project { id: string; name: string; description_vi: string; description_en: string; technologies: string[]; github_url: string; demo_url: string; demo_label: string; }
 
 const skills = {
   programminglanguages: ['C#', 'JavaScript', 'TypeScript', 'HTML', 'CSS', 'XAML'],
@@ -21,6 +13,7 @@ const skills = {
 };
 
 const DevSection = () => {
+  const { language } = useLanguage();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<string>('');
@@ -29,32 +22,15 @@ const DevSection = () => {
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const { data, error } = await supabase
-          .from('projects')
-          .select('*')
-          .order('created_at', { ascending: true });
-
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          setProjects(data);
-          setSelectedFile(data[0].id);
-        }
-      } catch (error) {
-        console.error('Lỗi khi lấy dữ liệu dự án:', error);
-      } finally {
-        setIsLoading(false);
-      }
+        const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: true });
+        if (data && data.length > 0) { setProjects(data); setSelectedFile(data[0].id); }
+      } catch (error) { console.error(error); } finally { setIsLoading(false); }
     };
-
     fetchProjects();
   }, []);
 
   const selectedProject = projects.find(p => p.id === selectedFile);
-
-  const handleSelectSkill = (skillId: string) => {
-    setSelectedFile(skillId);
-  };
+  const handleSelectSkill = (skillId: string) => setSelectedFile(skillId);
 
   const getFileNameDisplay = () => {
     if (isLoading) return 'loading.js';
@@ -71,11 +47,10 @@ const DevSection = () => {
     <section id="dev" className="min-h-screen py-20 bg-background">
       <div className="container mx-auto px-6">
         <h2 className="text-4xl font-bold mb-12 font-mono code-accent glow-code">
-          {'DEV - DỰ ÁN ĐÃ LÀM'}
+          {language === 'vi' ? 'DEV - DỰ ÁN NỔI BẬT' : 'DEV - FEATURED PROJECTS'}
         </h2>
 
         <div className="grid lg:grid-cols-4 gap-6">
-          {/* === SIDEBAR (BÊN TRÁI) === */}
           <div className="lg:col-span-1 bg-card border border-border rounded-lg p-4 h-fit">
             <div className="flex items-center gap-2 mb-4 text-muted-foreground">
               <Code2 className="w-4 h-4" />
@@ -83,49 +58,26 @@ const DevSection = () => {
             </div>
 
             <div className="space-y-2">
-              <button
-                onClick={() => {
-                   setSelectedTab('projects');
-                   if (projects.length > 0) setSelectedFile(projects[0].id); 
-                }}
-                className={`flex items-center gap-2 text-sm font-mono hover:text-primary transition-colors w-full text-left ${selectedTab === 'projects' ? 'text-primary' : ''}`}
-              >
-                <Folder className="w-4 h-4" />
-                <span>project (dự án)/</span>
+              <button onClick={() => { setSelectedTab('projects'); if (projects.length > 0) setSelectedFile(projects[0].id); }} className={`flex items-center gap-2 text-sm font-mono hover:text-primary transition-colors w-full text-left ${selectedTab === 'projects' ? 'text-primary' : ''}`}>
+                <Folder className="w-4 h-4" /> <span>{language === 'vi' ? 'dự án (projects)/' : 'projects/'}</span>
               </button>
               
               {selectedTab === 'projects' && (
                 <div className="ml-6 space-y-1">
                   {isLoading ? (
-                    <span className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Loader2 className="w-3 h-3 animate-spin" /> Đang tải...
-                    </span>
+                    <span className="text-sm text-muted-foreground flex items-center gap-2"><Loader2 className="w-3 h-3 animate-spin" /> {language === 'vi' ? 'Đang tải...' : 'Loading...'}</span>
                   ) : (
                     projects.map((project) => (
-                      <button
-                        key={project.id}
-                        onClick={() => setSelectedFile(project.id)}
-                        className={`flex items-center gap-2 text-sm font-mono hover:text-primary transition-colors w-full text-left ${
-                          selectedFile === project.id ? 'text-primary' : 'text-muted-foreground'
-                        }`}
-                      >
-                        <FileCode className="w-3 h-3" />
-                        <span className="truncate">{project.name.toLowerCase().replace(/\s+/g, '_')}</span>
+                      <button key={project.id} onClick={() => setSelectedFile(project.id)} className={`flex items-center gap-2 text-sm font-mono hover:text-primary transition-colors w-full text-left ${selectedFile === project.id ? 'text-primary' : 'text-muted-foreground'}`}>
+                        <FileCode className="w-3 h-3" /> <span className="truncate">{project.name.toLowerCase().replace(/\s+/g, '_')}</span>
                       </button>
                     ))
                   )}
                 </div>
               )}
 
-              <button
-                onClick={() => {
-                  setSelectedTab('skills');
-                  setSelectedFile('prog_lang');
-                }}
-                className={`flex items-center gap-2 text-sm font-mono hover:text-primary transition-colors w-full text-left ${selectedTab === 'skills' ? 'text-primary' : ''}`}
-              >
-                <Folder className="w-4 h-4" />
-                <span>skills (kỹ năng)/</span>
+              <button onClick={() => { setSelectedTab('skills'); setSelectedFile('prog_lang'); }} className={`flex items-center gap-2 text-sm font-mono hover:text-primary transition-colors w-full text-left ${selectedTab === 'skills' ? 'text-primary' : ''}`}>
+                <Folder className="w-4 h-4" /> <span>{language === 'vi' ? 'kỹ năng (skills)/' : 'skills/'}</span>
               </button>
               
               {selectedTab === 'skills' && (
@@ -144,7 +96,6 @@ const DevSection = () => {
             </div>
           </div>
 
-          {/* === CONTENT (BÊN PHẢI) === */}
           <div className="lg:col-span-3 bg-card border border-border rounded-lg overflow-hidden flex flex-col">
             <div className="bg-muted border-b border-border px-4 py-2 flex items-center gap-4">
               <div className="flex items-center gap-2 px-3 py-1 bg-background rounded text-sm font-mono">
@@ -157,16 +108,15 @@ const DevSection = () => {
               {isLoading && selectedTab === 'projects' ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                   <p className="font-mono">Đang lấy dữ liệu từ Server...</p>
+                   <p className="font-mono">{language === 'vi' ? 'Đang lấy dữ liệu từ Server...' : 'Fetching data from Server...'}</p>
                 </div>
               ) : selectedProject && selectedTab === 'projects' ? (
                 <div className="space-y-6 animate-fade-in">
                   <div>
                     <h3 className="text-2xl font-bold mb-4">{selectedProject.name}</h3>
                     <div className="space-y-4 text-muted-foreground">
-                      <p className="leading-relaxed">{selectedProject.description_vi}</p>
-                      <div className="border-t border-border/50 w-full my-2"></div>
-                      <p className="leading-relaxed italic opacity-80">{selectedProject.description_en}</p>
+                      {/* Đã đồng bộ hiển thị mô tả dự án theo ngôn ngữ chọn */}
+                      <p className="leading-relaxed">{language === 'vi' ? selectedProject.description_vi : selectedProject.description_en}</p>
                     </div>
                   </div>
 
@@ -174,9 +124,7 @@ const DevSection = () => {
                     <h4 className="text-sm font-mono text-muted-foreground mb-2">{'TECHNOLOGIES'}</h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedProject.technologies && selectedProject.technologies.map((tech) => (
-                        <span key={tech} className="px-3 py-1 bg-muted rounded text-sm font-mono code-accent border border-primary/20">
-                          {tech}
-                        </span>
+                        <span key={tech} className="px-3 py-1 bg-muted rounded text-sm font-mono code-accent border border-primary/20">{tech}</span>
                       ))}
                     </div>
                   </div>
@@ -186,16 +134,11 @@ const DevSection = () => {
                         <Button variant="outline" className="gap-2 font-mono"><Github className="w-4 h-4" /> GitHub</Button>
                       </a>
                     )}
-                    
                     {selectedProject.demo_url && selectedProject.demo_url !== '#' && (
                       <a href={selectedProject.demo_url} target="_blank" rel="noopener noreferrer">
-                        <Button className={`gap-2 font-mono ${
-                            selectedProject.demo_url.includes('youtube') 
-                            ? 'bg-red-600 hover:bg-red-700' 
-                            : 'bg-primary hover:bg-primary/90' 
-                        }`}>
+                        <Button className={`gap-2 font-mono ${selectedProject.demo_url.includes('youtube') ? 'bg-red-600 hover:bg-red-700' : 'bg-primary hover:bg-primary/90'}`}>
                           {selectedProject.demo_url.includes('youtube') ? <PlayCircle className="w-4 h-4" /> : <ExternalLink className="w-4 h-4" />}
-                          {selectedProject.demo_label || 'Live Demo'}
+                          {selectedProject.demo_label || (language === 'vi' ? 'Xem Demo' : 'Live Demo')}
                         </Button>
                       </a>
                     )}
@@ -207,25 +150,19 @@ const DevSection = () => {
               {selectedFile === 'prog_lang' && (
                 <div className="animate-fade-in font-mono">
                   <h3 className="text-xl font-bold mb-4 code-accent">{'# Programming Languages'}</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {skills.programminglanguages.map((lang) => <span key={lang} className="px-3 py-1 bg-muted rounded text-sm">{lang}</span>)}
-                  </div>
+                  <div className="flex flex-wrap gap-2">{skills.programminglanguages.map((lang) => <span key={lang} className="px-3 py-1 bg-muted rounded text-sm">{lang}</span>)}</div>
                 </div>
               )}
               {selectedFile === 'human_lang' && (
                 <div className="animate-fade-in font-mono">
                   <h3 className="text-xl font-bold mb-4 code-accent">{'# Human Languages'}</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {skills.humanlanguages.map((lang) => <span key={lang} className="px-3 py-1 bg-muted rounded text-sm">{lang}</span>)}
-                  </div>
+                  <div className="flex flex-wrap gap-2">{skills.humanlanguages.map((lang) => <span key={lang} className="px-3 py-1 bg-muted rounded text-sm">{lang}</span>)}</div>
                 </div>
               )}
               {selectedFile === 'frameworks' && (
                 <div className="animate-fade-in font-mono">
                   <h3 className="text-xl font-bold mb-4 code-accent">{'# Frameworks & Tools'}</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {skills.frameworks.map((framework) => <span key={framework} className="px-3 py-1 bg-muted rounded text-sm">{framework}</span>)}
-                  </div>
+                  <div className="flex flex-wrap gap-2">{skills.frameworks.map((framework) => <span key={framework} className="px-3 py-1 bg-muted rounded text-sm">{framework}</span>)}</div>
                 </div>
               )}
             </div>
