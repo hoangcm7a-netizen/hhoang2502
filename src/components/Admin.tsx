@@ -172,7 +172,7 @@ const Admin = () => {
                         <div>
                             {!editingProject ? (
                                 <div className="space-y-4">
-                                    <Button onClick={() => setEditingProject({ name: '', description_vi: '', description_en: '', technologies: '', github_url: '', demo_url: '', demo_label: 'Watch Video' })} className="bg-green-600"><Plus className="w-4 h-4 mr-2" /> Thêm</Button>
+                                    <Button onClick={() => setEditingProject({ name: '', description_vi: '', description_en: '', technologies: '', github_url: '', demo_url: '', demo_label: 'Watch Video', problem_vi: '', problem_en: '', solution_vi: '', solution_en: '', images: [] })} className="bg-green-600"><Plus className="w-4 h-4 mr-2" /> Thêm</Button>
                                     <div className="grid gap-3">
                                         {projects.map(p => (
                                             <div key={p.id} className="p-4 bg-[#1a1a1a] rounded flex justify-between items-center border border-gray-800">
@@ -183,15 +183,27 @@ const Admin = () => {
                                     </div>
                                 </div>
                             ) : (
-                                <form onSubmit={handleSaveProject} className="space-y-3 max-w-2xl">
+                                <form onSubmit={handleSaveProject} className="space-y-3 max-w-3xl">
                                     <Input placeholder="Tên" value={editingProject.name || ''} onChange={e => setEditingProject({...editingProject, name: e.target.value})} className="bg-[#1a1a1a]" required/>
-                                    <Textarea placeholder="Mô tả VN" value={editingProject.description_vi || ''} onChange={e => setEditingProject({...editingProject, description_vi: e.target.value})} className="bg-[#1a1a1a]" />
-                                    <Textarea placeholder="Mô tả EN" value={editingProject.description_en || ''} onChange={e => setEditingProject({...editingProject, description_en: e.target.value})} className="bg-[#1a1a1a]" />
-                                    <Input placeholder="Công nghệ" value={editingProject.technologies || ''} onChange={e => setEditingProject({...editingProject, technologies: e.target.value})} className="bg-[#1a1a1a]" />
-                                    <Input placeholder="Link GitHub" value={editingProject.github_url || ''} onChange={e => setEditingProject({...editingProject, github_url: e.target.value})} className="bg-[#1a1a1a]" />
-                                    <Input placeholder="Link Demo" value={editingProject.demo_url || ''} onChange={e => setEditingProject({...editingProject, demo_url: e.target.value})} className="bg-[#1a1a1a]" />
-                                    <Input placeholder="Nhãn nút" value={editingProject.demo_label || ''} onChange={e => setEditingProject({...editingProject, demo_label: e.target.value})} className="bg-[#1a1a1a]" />
-                                    <div className="flex gap-2"><Button type="submit" className="bg-green-600">Lưu</Button><Button type="button" variant="outline" onClick={() => setEditingProject(null)}>Hủy</Button></div>
+                                    <Textarea placeholder="Mô tả ngắn VN" value={editingProject.description_vi || ''} onChange={e => setEditingProject({...editingProject, description_vi: e.target.value})} className="bg-[#1a1a1a]" rows={2} />
+                                    <Textarea placeholder="Mô tả ngắn EN" value={editingProject.description_en || ''} onChange={e => setEditingProject({...editingProject, description_en: e.target.value})} className="bg-[#1a1a1a]" rows={2} />
+                                    
+                                    <div className="grid md:grid-cols-2 gap-3 border border-gray-800 p-4 rounded-lg bg-[#111]">
+                                        <p className="md:col-span-2 font-bold text-cyan-400 text-sm">Chi tiết Case Study (Không bắt buộc)</p>
+                                        <Textarea placeholder="Vấn đề VN" value={editingProject.problem_vi || ''} onChange={e => setEditingProject({...editingProject, problem_vi: e.target.value})} className="bg-[#1a1a1a]" rows={3} />
+                                        <Textarea placeholder="Vấn đề EN" value={editingProject.problem_en || ''} onChange={e => setEditingProject({...editingProject, problem_en: e.target.value})} className="bg-[#1a1a1a]" rows={3} />
+                                        <Textarea placeholder="Giải pháp VN" value={editingProject.solution_vi || ''} onChange={e => setEditingProject({...editingProject, solution_vi: e.target.value})} className="bg-[#1a1a1a]" rows={3} />
+                                        <Textarea placeholder="Giải pháp EN" value={editingProject.solution_en || ''} onChange={e => setEditingProject({...editingProject, solution_en: e.target.value})} className="bg-[#1a1a1a]" rows={3} />
+                                        <Input placeholder="Link ảnh Gallery (cách nhau dấu phẩy)" value={(editingProject.images || []).join(', ')} onChange={e => setEditingProject({...editingProject, images: e.target.value.split(',').map((s:string) => s.trim()).filter(Boolean)})} className="bg-[#1a1a1a] md:col-span-2" />
+                                    </div>
+
+                                    <Input placeholder="Công nghệ (cách nhau dấu phẩy)" value={Array.isArray(editingProject.technologies) ? editingProject.technologies.join(', ') : (editingProject.technologies || '')} onChange={e => setEditingProject({...editingProject, technologies: e.target.value})} className="bg-[#1a1a1a]" />
+                                    <div className="grid md:grid-cols-3 gap-3">
+                                        <Input placeholder="Link GitHub" value={editingProject.github_url || ''} onChange={e => setEditingProject({...editingProject, github_url: e.target.value})} className="bg-[#1a1a1a]" />
+                                        <Input placeholder="Link Demo" value={editingProject.demo_url || ''} onChange={e => setEditingProject({...editingProject, demo_url: e.target.value})} className="bg-[#1a1a1a]" />
+                                        <Input placeholder="Nhãn nút (Watch Video, Live Demo...)" value={editingProject.demo_label || ''} onChange={e => setEditingProject({...editingProject, demo_label: e.target.value})} className="bg-[#1a1a1a]" />
+                                    </div>
+                                    <div className="flex gap-2 pt-2"><Button type="submit" className="bg-green-600">Lưu Dự Án</Button><Button type="button" variant="outline" onClick={() => setEditingProject(null)}>Hủy</Button></div>
                                 </form>
                             )}
                         </div>

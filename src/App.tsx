@@ -10,11 +10,18 @@ import MediaSection from './components/MediaSection';
 import ContactSection from './components/ContactSection';
 import Admin from './components/Admin';
 import LanguageToggle from './components/LanguageToggle';
+import Preloader from './components/Preloader';
+import CustomCursor from './components/CustomCursor';
+import CommandMenu from './components/CommandMenu';
+import { Toaster } from '@/components/ui/sonner';
 
 const GA_MEASUREMENT_ID = 'G-PZNPT564W4'; // THAY MÃ GOOGLE CỦA BẠN VÀO ĐÂY SAU
 
 const Portfolio = () => (
   <main className="bg-background text-foreground min-h-screen font-sans selection:bg-primary/30 relative">
+    <Preloader />
+    <CustomCursor />
+    <CommandMenu />
     <LanguageToggle />
     <Navigation />
     <Hero />
@@ -85,6 +92,7 @@ function App() {
           <Route path="/admin" element={<Admin />} />
         </Routes>
       </BrowserRouter>
+      <Toaster position="bottom-right" richColors />
     </>
   );
 }

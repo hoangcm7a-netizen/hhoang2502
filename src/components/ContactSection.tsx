@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Github, Instagram, Mail, Send, Copy, Check, Facebook, X, ShieldAlert, Subtitles, Youtube, Link as LinkIcon } from 'lucide-react';
+import { Github, Instagram, Mail, Send, Copy, Check, Facebook, X, ShieldAlert, Subtitles, Youtube, Link as LinkIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,6 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import emailjs from '@emailjs/browser';
 import { supabase } from '../supabase';
 import { useLanguage } from '../context/LanguageContext';
+import confetti from 'canvas-confetti';
+import { useKonamiCode } from '../hooks/useKonamiCode';
 
 // --- CẤU HÌNH EMAILJS ---
 const SERVICE_ID = 'YOUR_SERVICE_ID';
@@ -46,6 +48,23 @@ const ContactSection = () => {
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaProblem, setCaptchaProblem] = useState({ a: 0, b: 0 });
   const [captchaInput, setCaptchaInput] = useState('');
+
+  const isKonamiActive = useKonamiCode();
+
+  useEffect(() => {
+    if (isKonamiActive) {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#4af626', '#ff5f56', '#ffbd2e', '#27c93f', '#a855f7']
+      });
+      toast({
+        title: "🎮 Konami Code Kích Hoạt!",
+        description: "Bạn đã tìm ra bí mật ẩn của trang web này!",
+      });
+    }
+  }, [isKonamiActive]);
 
   useEffect(() => {
     const fetchContact = async () => {
@@ -124,13 +143,34 @@ const ContactSection = () => {
           <div className="bg-card border border-border rounded-lg p-8">
             <div className="mb-6"><h3 className="text-xl font-bold font-mono code-accent">{language === 'vi' ? 'Gửi tin nhắn' : 'Send a Message'}</h3></div>
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
-              <div><label className="text-sm font-mono text-muted-foreground mb-1 block">Tên / Name</label><Input type="text" name="user_name" value={formData.user_name} onChange={handleInputChange} required className="bg-muted border-border font-mono text-foreground" /></div>
-              <div><label className="text-sm font-mono text-muted-foreground mb-1 block">Email</label><Input type="email" name="user_email" value={formData.user_email} onChange={handleInputChange} required className="bg-muted border-border font-mono text-foreground" /></div>
-              <div><label className="text-sm font-mono text-muted-foreground mb-1 block">Tin nhắn / Message</label><Textarea name="message" value={formData.message} onChange={handleInputChange} required rows={6} className="bg-muted border-border font-mono resize-none text-foreground" /></div>
-              <Button type="submit" className="w-full gap-2 font-mono bg-primary hover:bg-primary/90" disabled={isSubmitting}>
-                {isSubmitting ? <>Đang gửi...</> : <><Send className="w-4 h-4" /> {language === 'vi' ? 'Gửi tin nhắn' : 'Send a Message'}</>}
-              </Button>
-            </form>
+  {/* Ô Tên */}
+  <div>
+    <label htmlFor="user_name" className="text-sm font-mono text-muted-foreground mb-1 block">
+      {language === 'vi' ? 'Tên / Name' : 'Name'}
+    </label>
+    <Input id="user_name" type="text" name="user_name" value={formData.user_name} onChange={handleInputChange} required className="bg-muted border-border font-mono text-foreground" />
+  </div>
+
+  {/* Ô Email */}
+  <div>
+    <label htmlFor="user_email" className="text-sm font-mono text-muted-foreground mb-1 block">
+      Email
+    </label>
+    <Input id="user_email" type="email" name="user_email" value={formData.user_email} onChange={handleInputChange} required className="bg-muted border-border font-mono text-foreground" />
+  </div>
+
+  {/* Ô Tin nhắn */}
+  <div>
+    <label htmlFor="message" className="text-sm font-mono text-muted-foreground mb-1 block">
+      {language === 'vi' ? 'Tin nhắn / Message' : 'Message'}
+    </label>
+    <Textarea id="message" name="message" value={formData.message} onChange={handleInputChange} required rows={6} className="bg-muted border-border font-mono resize-none text-foreground" />
+  </div>
+
+  <Button type="submit" className="w-full gap-2 font-mono bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+    {isSubmitting ? <Loader2 className="animate-spin" /> : <><Send className="w-4 h-4" /> {language === 'vi' ? 'Gửi Tin Nhắn' : 'Send Message'}</>}
+  </Button>
+</form>
           </div>
 
           {/* Contact Info & Social Links */}
