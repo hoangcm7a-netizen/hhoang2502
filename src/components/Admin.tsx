@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase';
-import { Loader2, Save, Plus, Trash2, Edit3, Film, Code2, MessageSquare, LogOut, Lock, User, Phone, Wrench, Globe } from 'lucide-react';
+import { Loader2, Save, Plus, Trash2, Edit3, Film, Code2, MessageSquare, LogOut, Lock, User, Phone, Wrench, Globe, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 const Admin = () => {
     const [session, setSession] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'projects' | 'media' | 'tech' | 'contact' | 'seo'>('hero');
+    const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'projects' | 'media' | 'tech' | 'contact' | 'seo' | 'messages'>('hero');
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [messageType, setMessageType] = useState<'success' | 'error'>('success');
@@ -26,6 +26,7 @@ const Admin = () => {
     const [editingTech, setEditingTech] = useState<any>(null);
     const [contacts, setContacts] = useState<any[]>([]);
     const [editingContact, setEditingContact] = useState<any>(null);
+    const [messagesData, setMessagesData] = useState<any[]>([]);
 
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
@@ -65,6 +66,9 @@ const Admin = () => {
             } else if (activeTab === 'contact') {
                 const { data } = await supabase.from('social_links').select('*').order('created_at', { ascending: true });
                 setContacts(data || []);
+            } else if (activeTab === 'messages') {
+                const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: false });
+                setMessagesData(data || []);
             }
         } catch (e) { showMsg('Lỗi tải dữ liệu!', 'error'); } finally { setLoading(false); }
     };
@@ -134,6 +138,7 @@ const Admin = () => {
                     <TabButton active={activeTab === 'tech'} onClick={() => setActiveTab('tech')} icon={<Wrench className="w-4 h-4"/>} label="Tech" />
                     <TabButton active={activeTab === 'contact'} onClick={() => setActiveTab('contact')} icon={<Phone className="w-4 h-4"/>} label="Liên hệ" />
                     <TabButton active={activeTab === 'seo'} onClick={() => setActiveTab('seo')} icon={<Globe className="w-4 h-4"/>} label="SEO" />
+                    <TabButton active={activeTab === 'messages'} onClick={() => setActiveTab('messages')} icon={<Mail className="w-4 h-4"/>} label="Tin nhắn" />
                 </div>
 
                 <div className="bg-[#111] border border-gray-800 rounded-lg p-6 min-h-[500px]">
@@ -307,6 +312,36 @@ const Admin = () => {
                                 </div>
                             </div>
                             <Button onClick={handleSaveSeo} className="bg-amber-600"><Save className="w-4 h-4 mr-2"/>Cập nhật SEO</Button>
+                        </div>
+                    )}
+
+                    {/* TAB MESSAGES */}
+                    {activeTab === 'messages' && (
+                        <div className="space-y-4">
+                            <h2 className="text-xl font-bold font-mono text-cyan-400 mb-4">Hộp thư đến</h2>
+                            {messagesData.length === 0 ? (
+                                <p className="text-gray-500">Chưa có tin nhắn nào.</p>
+                            ) : (
+                                <div className="grid gap-4">
+                                    {messagesData.map((msg) => (
+                                        <div key={msg.id} className="p-4 bg-[#1a1a1a] border border-gray-800 rounded-lg relative group">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <p className="font-bold text-white text-lg">{msg.user_name}</p>
+                                                    <a href={`mailto:${msg.user_email}`} className="text-sm text-cyan-500 hover:underline">{msg.user_email}</a>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-xs text-gray-500 mb-2">{new Date(msg.created_at).toLocaleString('vi-VN')}</p>
+                                                    <Button size="sm" variant="ghost" className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteItem('messages', msg.id)}><Trash2 className="w-4 h-4"/></Button>
+                                                </div>
+                                            </div>
+                                            <div className="bg-[#111] p-3 rounded border border-gray-800">
+                                                <p className="text-gray-300 whitespace-pre-wrap">{msg.message}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

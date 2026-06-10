@@ -3,17 +3,11 @@ import { Github, Instagram, Mail, Send, Copy, Check, Facebook, X, ShieldAlert, S
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import emailjs from '@emailjs/browser';
+import { toast } from 'sonner';
 import { supabase } from '../supabase';
 import { useLanguage } from '../context/LanguageContext';
 import confetti from 'canvas-confetti';
 import { useKonamiCode } from '../hooks/useKonamiCode';
-
-// --- CẤU HÌNH EMAILJS ---
-const SERVICE_ID = 'YOUR_SERVICE_ID';
-const TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
-const PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
 
 const TikTokIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 group-hover:media-accent transition-colors"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" /></svg>
@@ -37,7 +31,6 @@ const ContactSection = () => {
   const { language } = useLanguage();
   const formRef = useRef<HTMLFormElement>(null);
   const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
   
   // Dữ liệu mảng Danh sách Contact từ Supabase
   const [contacts, setContacts] = useState<any[]>([]);
@@ -46,7 +39,7 @@ const ContactSection = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitCount, setSubmitCount] = useState(0);
   const [showCaptcha, setShowCaptcha] = useState(false);
-  const [captchaProblem, setCaptchaProblem] = useState({ a: 0, b: 0 });
+  const [captchaProblem, setCaptchaProblem] = useState('');
   const [captchaInput, setCaptchaInput] = useState('');
 
   const isKonamiActive = useKonamiCode();
@@ -59,8 +52,7 @@ const ContactSection = () => {
         origin: { y: 0.6 },
         colors: ['#4af626', '#ff5f56', '#ffbd2e', '#27c93f', '#a855f7']
       });
-      toast({
-        title: "🎮 Konami Code Kích Hoạt!",
+      toast.success("🎮 Konami Code Kích Hoạt!", {
         description: "Bạn đã tìm ra bí mật ẩn của trang web này!",
       });
     }
@@ -86,45 +78,53 @@ const ContactSection = () => {
   const handleCopyEmail = () => {
     navigator.clipboard.writeText(displayEmail);
     setCopied(true);
-    toast({ title: "Đã sao chép Email!", description: displayEmail });
+    toast.success("Đã sao chép Email!", { description: displayEmail });
     setTimeout(() => setCopied(false), 2000);
   };
 
   const generateCaptcha = () => {
-    setCaptchaProblem({ a: Math.floor(Math.random() * 10) + 1, b: Math.floor(Math.random() * 10) + 1 });
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 4; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setCaptchaProblem(result);
     setCaptchaInput('');
   };
 
-  const processSending = () => {
+  const processSending = async () => {
     setIsSubmitting(true);
-    emailjs.sendForm(SERVICE_ID, TEMPLATE_ID, formRef.current!, PUBLIC_KEY)
-      .then(
-        () => {
-          toast({ title: "Gửi thành công!", description: "Cảm ơn bạn, mình sẽ phản hồi sớm." });
-          setFormData({ user_name: '', user_email: '', message: '' });
-          setSubmitCount(prev => prev + 1);
-          setShowCaptcha(false);
-        },
-        (error) => {
-          console.error(error);
-          toast({ variant: "destructive", title: "Lỗi", description: "Gửi thất bại. Vui lòng thử lại." });
-        }
-      ).finally(() => setIsSubmitting(false));
+    
+    const { error } = await supabase.from('messages').insert([
+      { user_name: formData.user_name, user_email: formData.user_email, message: formData.message }
+    ]);
+
+    if (!error) {
+      toast.success("Gửi thành công!", { description: "Cảm ơn bạn, tin nhắn đã được ghi nhận." });
+      setFormData({ user_name: '', user_email: '', message: '' });
+      setSubmitCount(prev => prev + 1);
+      setShowCaptcha(false);
+    } else {
+      console.error(error);
+      toast.error("Lỗi hệ thống", { description: "Không thể lưu tin nhắn. Vui lòng thử lại sau." });
+    }
+    
+    setIsSubmitting(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.user_name || !formData.user_email || !formData.message) {
-        toast({ variant: "destructive", title: "Thiếu thông tin", description: "Vui lòng điền đầy đủ." }); return;
+        toast.error("Thiếu thông tin", { description: "Vui lòng điền đầy đủ." }); return;
     }
     if (submitCount === 0) processSending();
     else { generateCaptcha(); setShowCaptcha(true); }
   };
 
   const handleCaptchaSubmit = () => {
-    if (parseInt(captchaInput) === captchaProblem.a + captchaProblem.b) processSending();
+    if (captchaInput.toUpperCase() === captchaProblem) processSending();
     else {
-      toast({ variant: "destructive", title: "Sai kết quả", description: "Vui lòng tính lại." });
+      toast.error("Mã không hợp lệ", { description: "Mã xác nhận chưa chính xác." });
       generateCaptcha();
     }
   };
@@ -212,10 +212,10 @@ const ContactSection = () => {
             <Button variant="ghost" size="icon" className="absolute top-2 right-2 hover:text-destructive" onClick={() => setShowCaptcha(false)}><X className="w-5 h-5 text-foreground" /></Button>
             <div className="text-center space-y-2">
               <div className="flex justify-center text-yellow-500 mb-2"><ShieldAlert className="w-12 h-12" /></div>
-              <h3 className="text-2xl font-bold font-mono text-foreground">Kiểm tra bảo mật</h3>
-              <p className="text-muted-foreground text-sm pt-2">Để tránh spam, vui lòng xác nhận bạn không phải là robot.</p>
-              <div className="bg-muted p-4 rounded-md my-4"><p className="text-lg font-mono font-bold text-foreground">{captchaProblem.a} + {captchaProblem.b} = ?</p></div>
-              <Input type="number" placeholder="Nhập kết quả" value={captchaInput} onChange={(e) => setCaptchaInput(e.target.value)} className="text-center font-mono text-lg text-foreground bg-muted border-border" autoFocus onKeyDown={(e) => e.key === 'Enter' && handleCaptchaSubmit()} />
+              <h3 className="text-2xl font-bold font-mono text-foreground">Xác nhận Anti-Spam</h3>
+              <p className="text-muted-foreground text-sm pt-2">Hệ thống phát hiện có nhiều yêu cầu gửi. Hãy xác nhận mã CAPTCHA để tiếp tục.</p>
+              <div className="bg-muted p-4 rounded-md my-4"><p className="text-3xl tracking-[0.5em] font-mono font-bold text-primary">{captchaProblem}</p></div>
+              <Input type="text" placeholder="Nhập mã 4 ký tự" value={captchaInput} onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())} maxLength={4} className="text-center uppercase font-mono text-lg text-foreground bg-muted border-border" autoFocus onKeyDown={(e) => e.key === 'Enter' && handleCaptchaSubmit()} />
               <Button className="w-full bg-primary hover:bg-primary/90 font-mono mt-4 text-foreground" onClick={handleCaptchaSubmit}>Xác thực & Gửi</Button>
             </div>
           </div>
