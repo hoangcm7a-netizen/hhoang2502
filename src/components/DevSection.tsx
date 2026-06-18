@@ -183,14 +183,14 @@ const DevSection = () => {
                           {(selectedProject.problem_vi || selectedProject.problem_en) && (
                             <div>
                               <h4 className="text-lg font-bold font-mono mb-2 text-primary">{language === 'vi' ? 'Vấn Đề' : 'The Problem'}</h4>
-                              <p className="text-muted-foreground leading-relaxed">{language === 'vi' ? selectedProject.problem_vi : selectedProject.problem_en}</p>
+                              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{language === 'vi' ? selectedProject.problem_vi : selectedProject.problem_en}</p>
                             </div>
                           )}
 
                           {(selectedProject.solution_vi || selectedProject.solution_en) && (
                             <div>
                               <h4 className="text-lg font-bold font-mono mb-2 text-primary">{language === 'vi' ? 'Giải Pháp' : 'The Solution'}</h4>
-                              <p className="text-muted-foreground leading-relaxed">{language === 'vi' ? selectedProject.solution_vi : selectedProject.solution_en}</p>
+                              <p className="text-muted-foreground leading-relaxed whitespace-pre-line">{language === 'vi' ? selectedProject.solution_vi : selectedProject.solution_en}</p>
                             </div>
                           )}
 
